@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HerPath — Demo</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://kit.fontawesome.com/03d4c4c079.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <!-- PASSWORD  -->
+  <div id="login-box" class="login-box" role="dialog" aria-labelledby="login-title" aria-modal="true">
+    <h2 id="login-title">Welcome to HerPath</h2>
+    <p class="muted">Enter code to unlock the site</p>
+    <label for="password-input" class="visually-hidden">password</label>
+    <input id="password-input" type="password" placeholder="Enter demo code" aria-label="Demo password">
+    <div class="login-actions">
+      <button id="login-btn" class="btn">Enter</button>
+    </div>
+    <p id="error" role="status" class="error" aria-live="polite"></p>
+  </div>
+
+  <!-- hidden until correct password -->
+  <div id="app" class="hidden" role="main">
+
+    <div id="header" class="hero">
+      <div class="container header-row">
+        <img class="logo" src="/static/images/Her.jpg">
+        <nav class="nav">
+          <ul id="menu">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#talk">TalkSpace</a></li>
+            <li><a href="#shop">Shop Women owned</a></li>
+            <li><a href="#events">Community Events</a></li>
+            <li><a href="#calendar">Shared Calendar</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="container hero-text">
+        <h1>HerPath</h1>
+        <p class="tagline">It's never too late to reclaim your financial future.</p>
+      </div>
+    </div>
+
+    <!-- ABOUT -->
+    <section id="about" class="container section">
+      <h2 class="subtitle">About HerPath</h2>
+      <p class="muted">A community platform for women to learn financial skills, connect with mentors, promote businesses, and find support.<br>
+      Inspired by the lack of representation of women in the finance industry, and the lack of financial education women have access to in general, HerPath aims to create a space for women in finance. <br>
+    A space where it's okay to not know, or to not be sure. A space to build your resume, or just learn how to budget for the month.</p>
+    </section>
+
+    <!-- TALKSPACE -->
+    <section id="talk" class="container section">
+      <h2 class="subtitle">TalkSpace</h2>
+      <p class="muted">A moderated, supportive chat for peer support and mentor replies.</p>
+      <div id="chat" class="chat">
+        <div id="chat-box" class="chat-box" aria-live="polite" aria-atomic="false"></div>
+        <div class="chat-input-row">
+          <label for="chat-input" class="visually-hidden">Type a message</label>
+          <input id="chat-input" type="text" placeholder="Type a message..." aria-label="Chat message">
+          <button id="chat-send" class="btn">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOP WOMEN BRANDS -->
+    <section id="shop" class="container section">
+      <h2 class="subtitle">Shop Women</h2>
+      <p class="muted">Support women owned businesses</p>
+      <div id="productGrid" class="grid"></div>
+    </section>
+
+    <!-- COMMUNITY EVENTS -->
+    <section id="events" class="container section">
+      <h2 class="subtitle">Community Events</h2>
+      <p class="muted">Workshops, meetups, & mentorship sessions.</p>
+      <div id="eventsGrid" class="projects-list"></div>
+    </section>
+
+    <!-- SHARED CALENDAR -->
+    <section id="calendar" class="container section">
+      <h2 class="subtitle">Shared Calendar</h2>
+      <div id="calendarGrid" class="calendar-grid" role="grid" aria-label="Shared calendar"></div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="container section">
+      <h2 class="subtitle">Join Us</h2>
+      <p class="muted">Sign up to get workshop invites and mentoring opportunities.</p>
+      <button id="join-btn" class="btn ghost">Join the Mailing List</button>
+    </section>
+  </div>
+
+  <!-- REUSABLE MODAL -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-inner">
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+      <div class="modal-actions">
+        <button id="modal-close" class="btn ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const PASSWORD = 'hackathon';
+  const loginBox = document.getElementById('login-box');
+  const app = document.getElementById('app');
+  const loginBtn = document.getElementById('login-btn');
+  const passwordInput = document.getElementById('password-input');
+  const error = document.getElementById('error');
+
+  // NOTE: removed automatic restore on load to prevent protected content showing
+  // if sessionStorage was previously set during testing.
+
+  loginBtn.addEventListener('click', () => {
+    const val = passwordInput.value.trim();
+    if (val === PASSWORD) {
+      // keep session flag if you want persistence across reloads:
+      sessionStorage.setItem('herpath_unlocked','1');
+      showApp();
+    } else {
+      error.textContent = 'Incorrect code. Tip: try "hackathon"';
+      passwordInput.focus();
+    }
+  });
+
+  passwordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') loginBtn.click();
+  });
+
+  function showApp() {
+    loginBox.style.display = 'none';
+    app.classList.remove('hidden');
+    initApp();
+  }
+
+  /* ------- App initialization ------- */
+  function initApp(){
+    initChat();
+    loadProducts();
+    loadEvents();
+    buildCalendar();
+  }
+
+  /* ------- Modal helpers ------- */
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalBody = document.getElementById('modal-body');
+  const modalClose = document.getElementById('modal-close');
+  modalClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  function openModal(title, html) {
+    modalTitle.textContent = title;
+    modalBody.innerHTML = html;
+    modal.classList.remove('hidden');
+    modal.querySelector('.modal-inner').focus();
+  }
+  function closeModal(){ modal.classList.add('hidden'); }
+
+  /* ------- Chat ( Twilio) ------- */
+  function initChat(){
+    const chatBox = document.getElementById('chat-box');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+
+    pushMessage('mentor', 'Welcome to TalkSpace you can share thoughts or ask for financial advice!.');
+
+    chatSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    function sendMessage(){
+      const text = chatInput.value.trim();
+      if (!text) return;
+      pushMessage('user', text);
+      chatInput.value = '';
+      setTimeout(()=> pushMessage('mentor', 'Thanks that sounds like a great idea. Consider signing up for our workshop!'), 900);
+    }
+
+    function pushMessage(who, text){
+      const el = document.createElement('div');
+      el.className = 'chat-msg ' + (who === 'user' ? 'user-msg' : 'mentor-msg');
+      el.innerHTML = `<div class="chat-bubble"><strong>${who === 'user' ? 'You' : 'Mentor'}:</strong> ${escapeHtml(text)}</div>`;
+      chatBox.appendChild(el);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  }
+
+  /* ------- Shop products ------- */
+  const PRODUCTS = [
+    { id:1, title:"Candle Collective", desc:"Hand-poured soy candles", price:"$18", },
+    { id:2, title:"Glow Skincare", desc:"Small-batch skincare", price:"$30", },
+    { id:3, title:"Code Queens Workshop", desc:"Intro to coding for confidence", price:"Free",}
+  ];
+
+  function loadProducts(){
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = '';
+    PRODUCTS.forEach(p => {
+      const node = document.createElement('div');
+      node.className = 'project-card';
+      node.innerHTML = `
+        <h3>${escapeHtml(p.title)}</h3>
+        <p class="muted">${escapeHtml(p.desc)}</p>
+        <p class="price">${escapeHtml(p.price)}</p>
+        <div class="card-actions">
+          <button class="btn" data-id="${p.id}">Contact Owner</button>
+        </div>
+      `;
+      grid.appendChild(node);
+    });
+    grid.querySelectorAll('.card-actions .btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const p = PRODUCTS.find(x => String(x.id) === id);
+        openModal(p.title, `<p><strong>${escapeHtml(p.title)}</strong></p><p>${escapeHtml(p.desc)}</p><p>Price: ${escapeHtml(p.price)}</p><p><em>This would start a chat or Stripe checkout.</em></p>`);
+      });
+    });
+  }
+
+  /* ------- Events and RSVP ------- */
+  const EVENTS = [
+    { id:1, date: '2025-10-01', title:'Financial Empowerment Workshop', details:'Budgeting basics & goal setting' },
+    { id:2, date: '2025-10-10', title:'Women Entrepreneurs Meetup', details:'Networking & pitching practice' },
+    { id:3, date: '2025-10-15', title:'Mentorship Mixer', details:'Meet mentors in finance and business' }
+  ];
+  function loadEvents(){
+    const eventsDiv = document.getElementById('eventsGrid');
+    eventsDiv.innerHTML = '';
+    EVENTS.forEach(ev => {
+      const d = document.createElement('div');
+      d.className = 'project-card';
+      d.innerHTML = `<i class="fa-solid fa-calendar-day icon-blue" aria-hidden="true"></i>
+                     <h3>${escapeHtml(ev.title)}</h3>
+                     <p class="muted">${escapeHtml(ev.date)}</p>
+                     <p class="muted small">${escapeHtml(ev.details)}</p>
+                     <a href="#" class="link" data-id="${ev.id}">RSVP</a>`;
+      eventsDiv.appendChild(d);
+    });
+    eventsDiv.querySelectorAll('.link').forEach(a => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = a.getAttribute('data-id');
+        const ev = EVENTS.find(x => String(x.id) === id);
+        openModal(ev.title, `<p><strong>Date:</strong> ${escapeHtml(ev.date)}</p><p>${escapeHtml(ev.details)}</p><p><button id="confirm-rsvp" class="btn">Confirm RSVP</button></p>`);
+        setTimeout(()=> {
+          const c = document.getElementById('confirm-rsvp');
+          if (c) c.addEventListener('click', () => {
+            closeModal();
+            alert('RSVP confirmed!.');
+          });
+        }, 50);
+      });
+    });
+  }
+
+  /* ------- Calendar (simple clickable days) ------- */
+  function buildCalendar(){
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+    for (let day = 1; day <= 30; day++){
+      const el = document.createElement('div');
+      el.className = 'calendar-day';
+      el.setAttribute('role','button');
+      el.setAttribute('tabindex','0');
+      const dayEvents = EVENTS.filter(ev => new Date(ev.date).getDate() === day);
+      el.innerHTML = `<span class="day-number">${day}</span>`;
+      if (dayEvents.length) {
+        el.classList.add('has-event');
+        el.innerHTML += `<div class="event-dot" aria-hidden="true"></div>`;
+      }
+      el.addEventListener('click', () => {
+        if (dayEvents.length) {
+          const html = dayEvents.map(e => `<p><strong>${escapeHtml(e.title)}</strong><br>${escapeHtml(e.date)}<br><span class="muted small">${escapeHtml(e.details)}</span></p>`).join('');
+          openModal('Events on ' + day, html);
+        } else {
+          openModal('No events', '<p class="muted">No scheduled events for this date.</p>');
+        }
+      });
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.click(); });
+      grid.appendChild(el);
+    }
+  }
+
+  /* Connect Bank demo */
+  const connectBtn = document.getElementById('connect-bank');
+  const connectStatus = document.getElementById('connect-status');
+  connectBtn && connectBtn.addEventListener('click', () => {
+    const connected = sessionStorage.getItem('herpath_bank_connected') === '1';
+    if (!connected) {
+      sessionStorage.setItem('herpath_bank_connected','1');
+      connectStatus.textContent = 'Connected (demo sandbox)';
+      connectBtn.textContent = 'Disconnect Bank';
+    } else {
+      sessionStorage.removeItem('herpath_bank_connected');
+      connectStatus.textContent = '';
+      connectBtn.textContent = 'Connect Bank';
+    }
+  });
+
+  /* Join button demo */
+  const joinBtn = document.getElementById('join-btn');
+  joinBtn && joinBtn.addEventListener('click', () => alert('Thanks join confirmed.'));
+
+  /* Utility: escape text for insertion */
+  function escapeHtml(unsafe) {
+    return String(unsafe).replace(/[&<>"'`=\/]/g, function(s) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s];
+    });
+  }
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>
